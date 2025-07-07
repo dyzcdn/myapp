@@ -16,3 +16,6 @@ application/logs/*
 !application/logs/index.html
 !application/logs/.htaccess
 /vendor/
+
+uploads/profile_pics/*
+!uploads/profile_pics/index.html
