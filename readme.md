@@ -48,7 +48,7 @@
 ## 🗂 Struktur Folder
 
 ```text
-my-app/
+myapp/
 ├── application/
 │   ├── controllers/
 │   │   ├── Auth.php
@@ -102,8 +102,8 @@ my-app/
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/dyzcdn/my-app.git
-cd my-app
+git clone https://github.com/dyzcdn/myapp.git
+cd myapp
 ```
 
 ### 2. Install Dependency
@@ -140,7 +140,7 @@ RewriteRule ^(.*)$ index.php/$1 [L]
 Akses aplikasi:
 
 ```
-http://localhost/my-app/public/
+http://localhost/myapp/public/
 ```
 
 Jika belum ada tabel:
@@ -160,7 +160,7 @@ Kunjungi `/welcome/smtp_test` untuk menguji koneksi SMTP.
 
 ## 📥 Download Rilis
 
-Download versi stabil dari halaman [Releases](https://github.com/dyzcdn/my-app/releases).
+Download versi stabil dari halaman [Releases](https://github.com/dyzcdn/myapp/releases).
 
 ---
 
@@ -187,7 +187,7 @@ Proyek ini menggunakan lisensi **MIT** — silakan gunakan, fork, dan modifikasi
 
 ## 🙌 Kontribusi
 
-Pull request sangat disambut! Jangan ragu membuka [issue](https://github.com/dyzcdn/my-app/issues) untuk fitur, bug, atau pertanyaan.
+Pull request sangat disambut! Jangan ragu membuka [issue](https://github.com/dyzcdn/myapp/issues) untuk fitur, bug, atau pertanyaan.
 
 ---
 
