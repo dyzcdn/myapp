@@ -29,6 +29,22 @@
 
 ---
 
+## 📦 Requirement
+
+* PHP >= 7.4 (disarankan PHP 8.1 atau lebih tinggi)
+* MySQL 5.7+ / MariaDB
+* Ekstensi PHP yang diperlukan:
+
+  * `openssl`
+  * `pdo`
+  * `mbstring`
+  * `curl`
+  * `json`
+  * `zip`
+* Composer (untuk instalasi dependency tambahan)
+
+---
+
 ## 🗂 Struktur Folder
 
 ```text
@@ -43,7 +59,13 @@ my-app/
 │   │   ├── User_model.php
 │   │   └── Certificate_model.php
 │   ├── views/
+│   │   ├── _partials/
+│   │   │   ├── header.php
+│   │   │   └── footer.php
 │   │   ├── auth/
+│   │   │   ├── _partials/
+│   │   │   │   ├── header.php
+│   │   │   │   └── footer.php
 │   │   │   ├── login.php
 │   │   │   ├── register.php
 │   │   │   ├── forgot_password.php
@@ -57,7 +79,7 @@ my-app/
 │   ├── config/
 │   │   ├── config.php
 │   │   ├── database.php
-│   │   └── self_config.php   # Konfigurasi SMTP, site, OAuth, DN, dll
+│   │   └── self_config.php
 │   ├── helpers/
 │   │   ├── auth_helper.php
 │   │   ├── flash_helper.php
@@ -66,8 +88,9 @@ my-app/
 ├── uploads/
 │   ├── certs/
 │   └── profile_pics/
-├── public/
-│   └── index.php
+├── vendor/
+├── composer.json
+├── index.php
 ├── .htaccess
 └── README.md
 ```
@@ -83,7 +106,13 @@ git clone https://github.com/dyzcdn/my-app.git
 cd my-app
 ```
 
-### 2. Konfigurasi
+### 2. Install Dependency
+
+```bash
+composer install
+```
+
+### 3. Konfigurasi
 
 Edit file berikut:
 
@@ -96,17 +125,17 @@ Edit file berikut:
   * OAuth Google login
   * Cloudflare Turnstile key
 
-### 3. Setup `.htaccess`
+### 4. Setup `.htaccess`
 
 ```apacheconf
-# /public/.htaccess
+# /.htaccess
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.php/$1 [L]
 ```
 
-### 4. Jalankan
+### 5. Jalankan
 
 Akses aplikasi:
 
@@ -129,6 +158,12 @@ Kunjungi `/welcome/smtp_test` untuk menguji koneksi SMTP.
 
 ---
 
+## 📥 Download Rilis
+
+Download versi stabil dari halaman [Releases](https://github.com/dyzcdn/my-app/releases).
+
+---
+
 ## 📸 Contoh UI
 
 ![UI Screenshot](https://i.imgur.com/X9iWTIq.png)
@@ -137,7 +172,7 @@ Kunjungi `/welcome/smtp_test` untuk menguji koneksi SMTP.
 
 ## 🔐 Keamanan
 
-* Semua form dilindungi Turnstile Captcha
+* Semua form autentikasi dilindungi Turnstile Captcha
 * Autentikasi token Google kadaluarsa = logout otomatis
 * Proteksi CSRF dan input filter built-in dari CI3
 * Token email & reset tersimpan dengan waktu kedaluwarsa

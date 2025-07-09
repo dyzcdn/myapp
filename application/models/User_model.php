@@ -3,12 +3,17 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class User_model extends CI_Model {
 
+    public function __construct() {
+        parent::__construct();
+        $this->load->database(); // ⬅️ ini yang penting
+    }
+
     public function insert_user($data) {
         $data['id'] = $this->generate_id();
         return $this->db->insert('users', $data);
     }
 
-    private function generate_id($length = 8) {
+    public function generate_id($length = 8) {
         do {
             $id = substr(str_shuffle('ABCDEFGHJKLMNPQRSTUVWXYZ23456789'), 0, $length);
             $exists = $this->db->get_where('users', ['id' => $id])->num_rows() > 0;
@@ -71,24 +76,30 @@ class User_model extends CI_Model {
         return false;
     }
 
-    public function get_or_create_oauth_user($provider, $oauth_uid, $email, $name) {
+    public function get_or_create_oauth_user($provider, $provider_id, $email, $name, $picture = null) {
         $user = $this->db
-            ->where('oauth_provider', $provider)
-            ->where('oauth_uid', $oauth_uid)
+            ->where('provider', $provider)
+            ->where('provider_id', $provider_id)
             ->get('users')
             ->row();
 
         if ($user) {
+            // Opsional: update foto jika berubah
+            if ($picture && $user->profile_picture !== $picture) {
+                $this->db->where('id', $user->id)->update('users', ['profile_picture' => $picture]);
+                $user->profile_picture = $picture;
+            }
             return $user;
         } else {
             $data = [
                 'id' => $this->generate_id(),
                 'email' => $email,
-                'username' => $email,
+                'username' => sanitize_username($email),
                 'name' => $name,
-                'oauth_provider' => $provider,
-                'oauth_uid' => $oauth_uid,
-                'email_verified' => 1
+                'provider' => $provider,
+                'provider_id' => $provider_id,
+                'email_verified' => 1,
+                'profile_picture' => $picture // ✅ Tambah URL foto
             ];
             $this->db->insert('users', $data);
             return $this->db->get_where('users', ['id' => $data['id']])->row();

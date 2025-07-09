@@ -25,7 +25,7 @@
             <ul class="small">
                 <li><b>.htaccess</b>:
                     <div class="bg-light border rounded p-2 mb-2">
-                        <code>/public/.htaccess</code>
+                        <code>.htaccess</code>
                         <pre class="bg-dark text-light p-2 rounded"><code>RewriteEngine On<br/>RewriteCond %{REQUEST_FILENAME} !-f<br/>RewriteCond %{REQUEST_FILENAME} !-d<br/>RewriteRule ^(.*)$ index.php/$1 [L]</code></pre>
                     </div>
                 </li>
@@ -40,7 +40,7 @@
 
                 <li><b>Konfigurasi CA</b>:
                     <div class="bg-light border rounded p-2 mb-2">
-                        <code>/application/config/ca.php</code>
+                        <code>/application/config/self_config.php</code>
                         <br/>
                         <b>Root DN:</b>
                         <pre class="bg-dark text-light p-2 rounded"><code><?= var_export(config_item('ca_root_dn'), true) ?></code></pre>
@@ -101,13 +101,13 @@
             <table id="certTable" class="table table-bordered table-striped nowrap mt-3" style="width:100%">
                 <thead>
                     <tr>
-                        <th>#</th><th>CN</th><th>O</th><th>Waktu</th><th>SAN</th><th class="text-center">Aksi</th>
+                        <th>No</th><th>CN</th><th>O</th><th>Waktu</th><th>SAN</th><th class="text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($certificates as $row): ?>
+                    <?php $no = 1; foreach ($certificates as $row): ?>
                     <tr>
-                        <td><?= $row['uuid'] ?></td>
+                        <td><?= $no++ ?></td>
                         <td><?= htmlspecialchars($row['common_name']) ?></td>
                         <td><?= htmlspecialchars($row['organization']) ?></td>
                         <td><?= $row['created_at'] ?></td>

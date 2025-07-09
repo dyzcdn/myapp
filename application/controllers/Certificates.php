@@ -4,21 +4,23 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Certificates extends CI_Controller {
 
+    private $user_id;
+
     public function __construct() {
         parent::__construct();
         $this->load->model('certificate_model');
-        $this->load->library('zip');
-        // Library session diperlukan untuk flash messages
-        // $this->load->library('session'); --> sudah otomatis dimuat di autoload.php
+        $this->load->library('zip', 'database');
 
         if (!is_logged_in()) {
             set_flash('warning', 'Silakan login terlebih dahulu.');
             redirect('auth/login');
         }
 
+        $this->user_id = $this->session->userdata('user')->id;
+
         if ($this->session->userdata('google_token_expiry') && time() > $this->session->userdata('google_token_expiry')) {
             $this->session->sess_destroy();
-            set_flash('warning', 'Sesi Google Anda telah berakhir. Silakan login kembali.');
+            set_flash('warning', 'Sesi Anda telah berakhir. Silakan login kembali.');
             redirect('auth/login');
         }
     }
@@ -28,9 +30,11 @@ class Certificates extends CI_Controller {
      */
     public function index() {
         $data['ca_ready'] = $this->certificate_model->get_ca_certificate('root') && $this->certificate_model->get_ca_certificate('intermediate');
-        $data['certificates'] = $this->certificate_model->get_all_certificates();
+        $user_id = $this->user_id;
+        $data['certificates'] = $this->certificate_model->get_all_certificates_by_user($user_id);
         $this->load->view('ssl_view', $data);
     }
+
 
     /**
      * Metode untuk setup Root dan Intermediate CA untuk pertama kali.
@@ -38,7 +42,7 @@ class Certificates extends CI_Controller {
      */
     public function setup_ca() {
         if ($this->certificate_model->get_ca_certificate('root') && $this->certificate_model->get_ca_certificate('intermediate')) {
-            $this->session->set_flashdata('error', 'CA sudah di-setup. Tidak dapat dijalankan ulang.');
+            set_flash('error', 'CA sudah di-setup. Tidak dapat dijalankan ulang.');
             redirect(base_url('certificates'));
         }
 
@@ -59,7 +63,7 @@ class Certificates extends CI_Controller {
         openssl_pkey_export($intermediate_privkey, $intermediate_key_out);
         $this->certificate_model->save_ca_certificate('intermediate', $intermediate_cert_out, $intermediate_key_out);
 
-        $this->session->set_flashdata('message', 'Root dan Intermediate CA berhasil dibuat.');
+        set_flash('success', 'Root dan Intermediate CA berhasil dibuat. Silakan buat sertifikat domain.');
         redirect(base_url('certificates'));
     }
 
@@ -69,7 +73,7 @@ class Certificates extends CI_Controller {
     private function _generate_domain_certificate($cn, $o, $l, $st, $c, $san_string) {
         $intermediate_ca = $this->certificate_model->get_ca_certificate('intermediate');
         if (!$intermediate_ca) {
-            $this->session->set_flashdata('error', 'Intermediate CA tidak ditemukan. Harap jalankan setup terlebih dahulu.');
+            set_flash('error', 'Intermediate CA tidak ditemukan. Harap jalankan setup terlebih dahulu.');
             return null;
         }
 
@@ -130,6 +134,7 @@ class Certificates extends CI_Controller {
         if ($this->input->post('cn')) {
             $cn = $this->input->post('cn');
             $user_san = $this->input->post('san') ?? '';
+            $user_id = $this->user_id;
             
             $entries = array_filter(array_map('trim', explode(',', $user_san)));
             array_unshift($entries, $cn);
@@ -148,21 +153,22 @@ class Certificates extends CI_Controller {
             $result = $this->_generate_domain_certificate($cn, $o, $l, $st, $c, $san_string);
 
             if ($result) {
-                $this->certificate_model->save_certificate($cn, $o, $l, $st, $c, $san_string, $result['cert'], $result['key'], $result['csr']);
+                $this->certificate_model->save_certificate($user_id, $cn, $o, $l, $st, $c, $san_string, $result['cert'], $result['key'], $result['csr']);
             }
         }
-        redirect(base_url());
+        redirect(base_url('certificates'));
     }
 
     public function regenerate($uuid) {
-        $cert = $this->certificate_model->get_certificate_by_uuid($uuid);
+        $user_id = $this->user_id;
+        $cert = $this->certificate_model->get_certificate_by_uuid($uuid, $user_id);
         if ($cert) {
             $result = $this->_generate_domain_certificate($cert['common_name'], $cert['organization'], $cert['locality'], $cert['state'], $cert['country'], $cert['san']);
             if ($result) {
                 $this->certificate_model->update_certificate($uuid, $result['cert'], $result['key'], $result['csr']);
             }
         }
-        redirect(base_url());
+        redirect(base_url('certificates'));
     }
 
     public function download_ca($type) {
@@ -215,8 +221,8 @@ class Certificates extends CI_Controller {
                             ->set_header("Content-Disposition: attachment; filename=ca_android.der")
                             ->set_output($output);
             } else {
-                $this->session->set_flashdata('error', 'Gagal membuat bundle .der');
-                redirect(base_url());
+                set_flash('error', 'Gagal membuat bundle .der');
+                redirect(base_url('certificates'));
             }
         } else {
             show_404();
@@ -224,7 +230,7 @@ class Certificates extends CI_Controller {
     }
 
     public function download_zip($uuid) {
-        $cert = $this->certificate_model->get_certificate_by_uuid($uuid);
+        $cert = $this->certificate_model->get_certificate_by_uuid($uuid, $this->user_id);
         if ($cert) {
             $cn = preg_replace('/[^a-zA-Z0-9-_\.]/', '_', $cert['common_name']);
             $this->zip->add_data("{$cn}.pem", $cert['cert_content']);
@@ -239,7 +245,7 @@ class Certificates extends CI_Controller {
     }
 
     public function view($type, $uuid) {
-        $cert = $this->certificate_model->get_certificate_by_uuid($uuid);
+        $cert = $this->certificate_model->get_certificate_by_uuid($uuid, $this->user_id);
         $content = null;
         $filename = 'file.txt';
 
@@ -253,16 +259,14 @@ class Certificates extends CI_Controller {
         }
 
         if ($content) {
-            $this->output->set_content_type('text/plain')
-                         ->set_header("Content-Disposition: inline; filename=$filename")
-                         ->set_output($content);
+            $this->output->set_content_type('text/plain')->set_header("Content-Disposition: inline; filename=$filename")->set_output($content);
         } else {
             show_404();
         }
     }
     
     public function download_p12($uuid) {
-        $cert = $this->certificate_model->get_certificate_by_uuid($uuid);
+        $cert = $this->certificate_model->get_certificate_by_uuid($uuid, $this->user_id);
         if ($cert && !empty($cert['cert_content']) && !empty($cert['key_content'])) {
             $cn = preg_replace('/[^a-zA-Z0-9-_\.]/', '_', $cert['common_name']);
             $password = "112133";
@@ -273,8 +277,8 @@ class Certificates extends CI_Controller {
                              ->set_header("Content-Disposition: attachment; filename={$cn}.p12")
                              ->set_output($p12_content);
             } else {
-                $this->session->set_flashdata('error', 'Gagal membuat file .p12: ' . openssl_error_string());
-                redirect(base_url());
+                set_flash('error', 'Gagal membuat file .p12: ' . openssl_error_string());
+                redirect(base_url('certificates'));
             }
         } else {
             show_404();
@@ -285,7 +289,7 @@ class Certificates extends CI_Controller {
         if ($uuid) {
             $this->certificate_model->delete_certificate($uuid);
         }
-        redirect(base_url());
+        redirect(base_url('certificates'));
     }
 
     public function init_db() {
@@ -293,7 +297,7 @@ class Certificates extends CI_Controller {
 
         // 1. Jika tabel sudah ada, jangan lanjut
         if ($this->db->table_exists('ca_certificates') && $this->db->table_exists('certificates')) {
-            $this->session->set_flashdata('error', 'Tabel sudah ada. Inisialisasi tidak diperlukan.');
+            set_flash('error', 'Tabel sudah ada. Inisialisasi tidak diperlukan.');
             redirect(base_url('certificates'));
         }
 
@@ -334,6 +338,7 @@ class Certificates extends CI_Controller {
             $fields = [
                 'id' => ['type' => 'INT', 'auto_increment' => TRUE],
                 'uuid' => ['type' => 'VARCHAR', 'constraint' => 32, 'null' => FALSE],
+                'user_id' => ['type' => 'VARCHAR', 'constraint' => 8, 'null' => FALSE],
                 'common_name' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => TRUE],
                 'organization' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => TRUE],
                 'locality' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => TRUE],
@@ -355,8 +360,8 @@ class Certificates extends CI_Controller {
                 MODIFY created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
                 MODIFY updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP");
         }
-
-        $this->session->set_flashdata('message', 'Tabel berhasil dibuat.');
+        
+        set_flash('success', 'Tabel berhasil dibuat.');
         redirect(base_url('certificates'));
     }
 

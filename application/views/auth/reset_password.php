@@ -1,10 +1,5 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Reset Password</title>
-    <link href="https://cdn.lab/static/bootstrap-5.0.2/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
+<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+<?php $this->load->view('auth/_partials/header', ['title' => 'Reset Password']); ?>
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-5">
@@ -17,15 +12,14 @@
                         <div class="mb-3">
                             <input type="password" name="password" class="form-control" placeholder="Password Baru" required>
                         </div>
-                        <button type="submit" class="btn btn-success w-100">Reset Password</button>
+                        <button type="submit" class="btn btn-primary w-100">Reset Password</button>
                     </form>
                     <div class="mt-3 text-center">
-                        <a href="<?= base_url('auth/login') ?>">← Kembali ke Login</a>
+                        <a class="link-opacity-50-hover link-offset-2 link-underline link-underline-opacity-0" href="<?= base_url('auth/login');?>">← Kembali ke Login</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-</body>
-</html>
+<?php $this->load->view('auth/_partials/footer'); ?>

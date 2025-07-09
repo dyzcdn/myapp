@@ -13,6 +13,11 @@ class Certificate_model extends CI_Model {
         return $uuid;
     }
 
+    public function __construct() {
+        parent::__construct();
+        $this->load->database();
+    }
+
     // === FUNGSI BARU UNTUK MENGELOLA CA ===
 
     /**
@@ -29,8 +34,8 @@ class Certificate_model extends CI_Model {
         return $query->row_array();
     }
 
-    public function get_certificate_by_uuid($uuid) {
-        return $this->db->get_where('certificates', ['uuid' => $uuid])->row_array();
+    public function get_certificate_by_uuid($uuid, $user_id) {
+        return $this->db->get_where('certificates', ['uuid' => $uuid, 'user_id' => $user_id])->row_array();
     }
 
     /**
@@ -44,11 +49,11 @@ class Certificate_model extends CI_Model {
         $uuid = $this->generate_uuid('ca_certificates');
 
         $data = [
-            'uuid' => $uuid,
-            'ca_type' => $type,
-            'cert_content' => $cert_content,
-            'key_content' => $key_content,
-            'created_at' => date('Y-m-d H:i:s')
+            'uuid'          => $uuid,
+            'ca_type'       => $type,
+            'cert_content'  => $cert_content,
+            'key_content'   => $key_content,
+            'created_at'    => date('Y-m-d H:i:s')
         ];
 
         $this->db->where('ca_type', $type);
@@ -74,6 +79,18 @@ class Certificate_model extends CI_Model {
         return $query->result_array();
     }
 
+    public function get_all_certificates_by_user($user_id) {
+        if (!$this->db->table_exists('certificates')) {
+            return []; // Kosongkan, tidak error
+        }
+        
+        $this->db->where('user_id', $user_id);
+        $this->db->order_by('created_at', 'DESC');
+        $query = $this->db->get('certificates');
+        return $query->result_array();
+    }
+
+
     public function get_certificate_by_id($id) {
         $query = $this->db->get_where('certificates', ['id' => $id]);
         return $query->row_array();
@@ -83,12 +100,13 @@ class Certificate_model extends CI_Model {
      * Menyimpan sertifikat domain baru.
      * Tidak lagi menyimpan path file.
      */
-    public function save_certificate($cn, $o, $l, $st, $c, $san, $cert_content, $key_content, $csr_content) {
+    public function save_certificate($user_id, $cn, $o, $l, $st, $c, $san, $cert_content, $key_content, $csr_content) {
 
         $uuid = $this->generate_uuid('certificates');
 
         $data = [
             'uuid'         => $uuid,
+            'user_id'      => $user_id,
             'common_name'  => $cn,
             'organization' => $o,
             'locality'     => $l,

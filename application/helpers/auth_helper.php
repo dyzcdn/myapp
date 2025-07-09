@@ -7,3 +7,13 @@ if (!function_exists('is_logged_in')) {
         return $CI->session->userdata('user') ? true : false;
     }
 }
+
+if (!function_exists('sanitize_username')) {
+    function sanitize_username($input) {
+        if (strpos($input, '@') !== false) {
+            $input = explode('@', $input)[0];
+        }
+
+        return preg_replace('/[^a-zA-Z0-9_.-]/', '', strtolower($input));
+    }
+}

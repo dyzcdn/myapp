@@ -49,7 +49,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 | Examples:	my-controller/index	-> my_controller/index
 |		my-controller/my-method	-> my_controller/my_method
 */
-$route['default_controller'] = 'auth/login';
+$route['default_controller'] = 'auth';
 
 $route['welcome/smtp'] = 'welcome/smtp';
 
@@ -63,6 +63,11 @@ $route['certificates/download_ca/(:any)'] = 'certificates/download_ca/$1';
 $route['certificates/download_ca_bundle'] = 'certificates/download_ca_bundle';
 $route['certificates/download_ca_android'] = 'certificates/download_ca_android';
 $route['certificates/init_db'] = 'certificates/init_db';
+
+$route['favicon-(:num)\.png'] = 'favicon/index/$1';
+$route['manifest.json'] = 'pwa/manifest';
+$route['sw.js'] = 'pwa/service_worker';
+
 
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;

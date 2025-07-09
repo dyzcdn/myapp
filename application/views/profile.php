@@ -30,12 +30,12 @@
         <form method="post" action="<?= base_url('profile/update_profile') ?>" enctype="multipart/form-data">
             <div class="mb-3">
                 <label>Nama Lengkap</label>
-                <input type="text" name="full_name" class="form-control" value="<?= htmlspecialchars($user->full_name ?? $user->name ?? '') ?>">
+                <input type="text" name="name" class="form-control" value="<?= htmlspecialchars($user->name ?? '') ?>">
             </div>
             <div class="mb-3">
                 <label>Foto Profil</label><br>
                 <?php if (!empty($user->profile_picture)) : ?>
-                    <img src="<?= base_url($user->profile_picture) ?>" class="img-thumbnail mb-2" width="120">
+                    <?= get_profile_picture($user, "img-thumbnail mb-2", 120); ?>
                 <?php endif; ?>
                 <input type="file" name="profile_picture" class="form-control">
             </div>

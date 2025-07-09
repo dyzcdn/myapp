@@ -19,9 +19,22 @@ class Profile extends CI_Controller {
     }
 
     public function update_account() {
+        $this->load->library('form_validation');
+        $this->load->helper('auth');
+
         $user = $this->session->userdata('user');
+
+        $this->form_validation->set_rules('email', 'Email', 'required|valid_email');
+        $this->form_validation->set_rules('username', 'Username', 'required|alpha_dash|min_length[3]|max_length[30]');
+        $this->form_validation->set_rules('password', 'Password', 'min_length[6]');
+
+        if (!$this->form_validation->run()) {
+            set_flash('error', validation_errors('<div>', '</div>'));
+            redirect('profile');
+        }
+
         $email = $this->input->post('email');
-        $username = $this->input->post('username');
+        $username = sanitize_username($this->input->post('username')); // ← filter username
         $password = $this->input->post('password');
 
         $data = [
@@ -48,9 +61,9 @@ class Profile extends CI_Controller {
 
     public function update_profile() {
         $user = $this->session->userdata('user');
-        $full_name = $this->input->post('full_name');
+        $name = $this->input->post('name');
 
-        $data = ['full_name' => $full_name];
+        $data = ['name' => $name];
 
         if (!empty($_FILES['profile_picture']['name'])) {
             $config['upload_path'] = './uploads/profile_pics/';
@@ -91,7 +104,6 @@ class Profile extends CI_Controller {
         $confirmed = $this->input->post('confirm_delete');
 
         if ($confirmed === 'yes') {
-            // Putuskan koneksi dari social login jika ada
             if ($user->oauth_provider === 'google' && $this->session->userdata('google_token')) {
                 $client = new Google_Client();
                 $client->setClientId($this->config->item('google_client_id'));
@@ -101,12 +113,30 @@ class Profile extends CI_Controller {
 
             $this->User_model->delete_user($user->id);
             $this->session->sess_destroy();
-            $this->session->set_flashdata('success', 'Akun Anda berhasil dihapus. Jika Anda login dengan Google, Anda juga dapat menghapus akses aplikasi dari <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer">Google Akun Anda</a>.');
+            set_flash('success', 'Akun Anda berhasil dihapus. Jika Anda login dengan Google, Anda juga dapat menghapus akses aplikasi dari <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer">Google Akun Anda</a>.');
             redirect('auth/login');
         } else {
             set_flash('error', 'Konfirmasi penghapusan akun tidak valid.');
             redirect('profile');
         }
+    }
+
+    public function info(){
+        $is_logged_in = is_logged_in(); // bool
+        $user_data = $this->session->userdata('user');
+        $google_token_expiry = $this->session->userdata('google_token_expiry');
+        $current_time = time();
+
+        $response = [
+            'is_logged_in' => $is_logged_in,
+            'user' => $user_data,
+            'google_token_expiry' => $google_token_expiry,
+            'current_time' => $current_time,
+        ];
+
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
     }
     
 }

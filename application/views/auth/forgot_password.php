@@ -1,10 +1,5 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Lupa Password</title>
-    <link href="https://cdn.lab/static/bootstrap-5.0.2/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
+<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+<?php $this->load->view('auth/_partials/header', ['title' => 'Lupa Password']); ?>
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-5">
@@ -19,12 +14,11 @@
                         <button type="submit" class="btn btn-primary w-100">Kirim Link Reset</button>
                     </form>
                     <div class="mt-3 text-center">
-                        <a href="<?= base_url('auth/login') ?>">← Kembali ke Login</a>
+                        <a class="link-opacity-50-hover link-offset-2 link-underline link-underline-opacity-0" href="<?= base_url('auth/login') ?>">← Kembali ke Login</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-</body>
-</html>
+<?php $this->load->view('auth/_partials/footer'); ?>

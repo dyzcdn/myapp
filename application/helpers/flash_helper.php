@@ -32,29 +32,3 @@ if (!function_exists('display_flash')) {
     }
 }
 
-
-if (!function_exists('flash_message')) {
-    function flash_message() {
-        $CI =& get_instance();
-        $output = '';
-
-        foreach (['success', 'error', 'warning', 'info'] as $type) {
-            if ($msg = $CI->session->flashdata($type)) {
-                $bootstrapClass = [
-                    'success' => 'success',
-                    'error' => 'danger',
-                    'warning' => 'warning',
-                    'info' => 'info'
-                ][$type];
-
-                $output .= '<div class="alert alert-' . $bootstrapClass . ' alert-dismissible fade show" role="alert">';
-                $output .= $msg; // Izinkan HTML
-                $output .= '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
-                $output .= '</div>';
-            }
-        }
-
-        return $output;
-    }
-}
-

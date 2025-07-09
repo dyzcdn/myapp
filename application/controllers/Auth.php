@@ -11,98 +11,49 @@ class Auth extends CI_Controller {
     private $cf_turnstile_secret_key;
     private $table_exists;
     private $user_exists;
+    private $db_connected;
 
     public function __construct() {
         parent::__construct();
         $this->load->model('User_model');
+        $this->load->helper(['social_login']);
         $this->load->dbforge();
 
         $this->google_client_id = $this->config->item('google_client_id');
         $this->google_client_secret = $this->config->item('google_client_secret');
         $this->cf_turnstile_secret_key = $this->config->item('cf_turnstile_secret_key');
 
-        $this->table_exists = $this->db->table_exists('users');
+        $this->db_connected = $this->is_database_connected();
+        $this->table_exists = $this->db_connected ? $this->db->table_exists('users') : false;
         $this->user_exists = $this->table_exists ? $this->db->count_all('users') > 0 : false;
 
         $method = $this->router->method;
 
-        if (ENVIRONMENT === 'development') {
-            if (!$this->table_exists && !in_array($method, ['index', 'init_db', 'init_user'])) {
-                redirect('auth/index');
-            }
-            if ($this->table_exists && !$this->user_exists && !in_array($method, ['index', 'init_user'])) {
-                redirect('auth/index');
-            }
-            if ($this->table_exists && $this->user_exists && $method === 'index') {
-                redirect('auth/login');
+        if (!$this->db_connected || !$this->table_exists || !$this->user_exists) {
+            if (!in_array($method, ['logout'])) {
+                redirect('install');
             }
         }
+    }
+
+    private function is_database_connected() {
+        $CI =& get_instance();
+        @mysqli_report(MYSQLI_REPORT_OFF);
+        $conn = @mysqli_connect(
+            $CI->db->hostname,
+            $CI->db->username,
+            $CI->db->password,
+            $CI->db->database
+        );
+        return $conn ? true : false;
     }
 
     public function index() {
-        $data['table_exists'] = $this->table_exists;
-        $data['user_exists'] = $this->user_exists;
-        $this->load->view('auth/documentation', $data);
-    }
-
-    public function init_db() {
-        if (ENVIRONMENT !== 'development') show_error('Fitur ini hanya tersedia di environment DEVELOPMENT.', 403);
-
-        if ($this->table_exists) {
-            $this->session->set_flashdata('error', 'Tabel users sudah tersedia.');
-            redirect('auth/index');
+        if (is_logged_in()) {
+            redirect('welcome');
+        } else {
+            redirect('auth/login');
         }
-
-        $fields = [
-            'id' => ['type' => 'VARCHAR', 'constraint' => 8],
-            'oauth_provider' => ['type' => 'VARCHAR', 'constraint' => 50, 'null' => TRUE],
-            'oauth_uid' => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => TRUE],
-            'name' => ['type' => 'VARCHAR', 'constraint' => 100],
-            'email' => ['type' => 'VARCHAR', 'constraint' => 100],
-            'username' => ['type' => 'VARCHAR', 'constraint' => 50, 'null' => TRUE],
-            'full_name' => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => TRUE],
-            'profile_picture' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => TRUE],
-            'notification_pref' => ['type' => 'TEXT', 'null' => TRUE],
-            'password' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => TRUE],
-            'reset_token_created_at' => ['type' => 'DATETIME', 'null' => TRUE],
-            'reset_token' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => TRUE],
-            'token_expiry' => ['type' => 'DATETIME', 'null' => TRUE],
-            'email_verification_token' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => TRUE],
-            'email_verified' => ['type' => 'TINYINT', 'constraint' => 1, 'default' => 0],
-            'created_at' => ['type' => 'DATETIME', 'null' => TRUE],
-            'updated_at' => ['type' => 'DATETIME', 'null' => TRUE],
-        ];
-
-        $this->dbforge->add_field($fields);
-        $this->dbforge->add_key('id', TRUE);
-        $this->dbforge->add_key('email', TRUE);
-        $this->dbforge->create_table('users');
-
-        $this->session->set_flashdata('message', 'Tabel users berhasil dibuat.');
-        redirect('auth/index');
-    }
-
-    public function init_user() {
-        if (!$this->table_exists) {
-            $this->session->set_flashdata('error', 'Tabel belum tersedia.');
-            redirect('auth/index');
-        }
-
-        if ($this->user_exists) {
-            $this->session->set_flashdata('error', 'Sudah ada user terdaftar.');
-            redirect('auth/index');
-        }
-
-        $this->User_model->insert_user([
-            'email' => 'admin@example.com',
-            'username' => 'admin',
-            'name' => 'Administrator',
-            'password' => password_hash('admin123', PASSWORD_BCRYPT),
-            'email_verified' => 1
-        ]);
-
-        $this->session->set_flashdata('message', 'User admin berhasil dibuat.');
-        redirect('auth/login');
     }
 
     public function login() {
@@ -113,6 +64,41 @@ class Auth extends CI_Controller {
 
     public function register() {
         if (is_logged_in()) redirect('welcome');
+
+        $this->load->library('form_validation');
+        $this->load->helper('auth');
+
+        // Jika form disubmit (POST)
+        if ($this->input->method() === 'post') {
+            $this->form_validation->set_rules('username', 'Username', 'required|alpha_dash|min_length[3]|max_length[30]|is_unique[users.username]');
+            $this->form_validation->set_rules('email', 'Email', 'required|valid_email|is_unique[users.email]');
+            $this->form_validation->set_rules('password', 'Password', 'required|min_length[6]');
+            $this->form_validation->set_rules('accept_policy', 'Kebijakan Privasi', 'required');
+
+            if (!$this->_verify_captcha()) {
+                set_flash('error', 'Captcha gagal. Silakan coba lagi.');
+            } elseif ($this->form_validation->run()) {
+                $email = $this->input->post('email');
+                $username = sanitize_username($this->input->post('username'));
+                $password = password_hash($this->input->post('password'), PASSWORD_BCRYPT);
+                $token = bin2hex(random_bytes(32));
+
+                $this->User_model->insert_user([
+                    'email' => $email,
+                    'username' => $username,
+                    'password' => $password,
+                    'email_verification_token' => $token,
+                    'email_verified' => 0
+                ]);
+
+                $this->_send_verification_email($email, $username, $token);
+                set_flash('success', 'Pendaftaran berhasil. Silakan verifikasi email Anda.');
+                redirect('auth/login');
+            } else {
+                set_flash('error', 'Silakan periksa kembali isian Anda.');
+            }
+        }
+
         $data['cf_site_key'] = $this->config->item('cf_turnstile_site_key');
         $this->load->view('auth/register', $data);
     }
@@ -123,8 +109,25 @@ class Auth extends CI_Controller {
             redirect('auth/register');
         }
 
+        $this->load->library('form_validation');
+        $this->load->helper('auth');
+
+        $this->form_validation->set_rules('username', 'Username', 'required|alpha_dash|min_length[3]|max_length[30]|is_unique[users.username]');
+        $this->form_validation->set_rules('email', 'Email', 'required|valid_email|is_unique[users.email]');
+        $this->form_validation->set_rules('password', 'Password', 'required|min_length[6]');
+
+        if (!$this->input->post('accept_policy')) {
+            set_flash('error', 'Anda harus menyetujui Kebijakan Privasi dan Syarat & Ketentuan.');
+            redirect('auth/register');
+        }
+
+        if (!$this->form_validation->run()) {
+            $this->session->set_flashdata('validation_errors', validation_errors());
+            redirect('auth/register');
+        }
+
         $email = $this->input->post('email');
-        $username = $this->input->post('username');
+        $username = sanitize_username($this->input->post('username'));
         $password = password_hash($this->input->post('password'), PASSWORD_BCRYPT);
         $token = bin2hex(random_bytes(32));
 
@@ -285,7 +288,8 @@ class Auth extends CI_Controller {
                     'google',
                     $google_user->id,
                     $google_user->email,
-                    $google_user->name
+                    $google_user->name,
+                    $google_user->picture ?? null
                 );
 
                 $this->session->set_userdata('user', $user);
