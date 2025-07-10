@@ -72,7 +72,7 @@ myapp/
 │   │   │   └── documentation.php
 │   │   ├── profile.php
 │   │   ├── ssl_view.php
-│   │   ├── welcome_message.php
+│   │   ├── welcome.php
 │   │   └── email_templates/
 │   │       ├── verification_email.php
 │   │       └── reset_password_email.php
@@ -98,6 +98,12 @@ myapp/
 ---
 
 ## ⚙️ Setup Cepat
+
+### 0. Download Langsung
+
+➡️ [Download](https://github.com/dyzcdn/myapp/releases/download/v1.0.0/myapp-v1.0.0.zip)
+
+Dengan download langsung sudah termasuk Dependency. Atau anda dapat clone repository ini.
 
 ### 1. Clone Repository
 
@@ -166,7 +172,10 @@ Download versi stabil dari halaman [Releases](https://github.com/dyzcdn/myapp/re
 
 ## 📸 Contoh UI
 
-![UI Screenshot](https://i.imgur.com/X9iWTIq.png)
+![UI Screenshot](https://cdn.dyzulk.com/img-cdn/DyzulkDev-App-Login.png)
+![UI Screenshot](https://cdn.dyzulk.com/img-cdn/DyzulkDev-App-Register.png)
+![UI Screenshot](https://cdn.dyzulk.com/img-cdn/DyzulkDev-SSL-3-Tier-Generator.png)
+![UI Screenshot](https://cdn.dyzulk.com/img-cdn/DyzulkDev-Tes-SMTP.png)
 
 ---
 

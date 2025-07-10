@@ -38,7 +38,7 @@
 
                         <!-- Optional: Cloudflare Turnstile -->
                         <div class="col-12 text-center">
-                            <div class="cf-turnstile mb-2" data-sitekey="<?= $this->config->item('cf_turnstile_site_key') ?>"></div>
+                            <?= turnstile_widget($this->config->item('cf_turnstile_site_key')) ?>
                         </div>
 
                         <div class="col-12">

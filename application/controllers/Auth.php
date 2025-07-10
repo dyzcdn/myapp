@@ -231,13 +231,29 @@ class Auth extends CI_Controller {
     }
 
     public function reset_password($token) {
-        $user = $this->User_model->get_user_by_token($token);
-        if (!$user || strtotime($user->token_expiry) < time()) {
-            set_flash('error', 'Token tidak valid atau kadaluarsa.');
+        if (!empty($token)) {
+            $user = $this->User_model->get_user_by_token($token);
+
+            if ($user) {
+                if (strtotime($user->token_expiry) >= time()) {
+                    // Token valid dan belum kadaluarsa
+                    $this->load->view('auth/reset_password', ['token' => $token]);
+                } else {
+                    // Token kadaluarsa
+                    set_flash('error', 'Token sudah kadaluarsa.');
+                    redirect('auth/login');
+                }
+            } else {
+                // Token tidak cocok dengan user mana pun
+                set_flash('error', 'Token tidak valid.');
+                redirect('auth/login');
+            }
+
+        } else {
+            // Token tidak ada di URL
+            set_flash('error', 'Token tidak ditemukan.');
             redirect('auth/login');
         }
-
-        $this->load->view('auth/reset_password', ['token' => $token]);
     }
 
     public function do_reset_password() {

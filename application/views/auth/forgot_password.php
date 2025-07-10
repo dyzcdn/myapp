@@ -11,6 +11,9 @@
                         <div class="mb-3">
                             <input type="email" name="email" class="form-control" placeholder="Masukkan email Anda" required>
                         </div>
+                        <div class="col-12 text-center">
+                            <?= turnstile_widget($this->config->item('cf_turnstile_site_key')) ?>
+                        </div>
                         <button type="submit" class="btn btn-primary w-100">Kirim Link Reset</button>
                     </form>
                     <div class="mt-3 text-center">
